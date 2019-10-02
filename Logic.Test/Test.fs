@@ -1,7 +1,6 @@
 module TimeOff.Tests
 
 open Expecto
-open System
 
 let Given (events: RequestEvent list) = events
 let ConnectedAs (user: User) (events: RequestEvent list) = events, user
@@ -30,7 +29,7 @@ let overlapTests =
         End = { Date = DateTime(2019, 10, 1); HalfDay = PM }
       }
 
-      Expect.isTrue (Logic.overlapsWith request request) "A request should overlap with istself"
+      Expect.isTrue (Logic.overlapsWith request request) "A request should overlap with itself"
     }
 
     test "Requests on 2 distinct days don't overlap" {

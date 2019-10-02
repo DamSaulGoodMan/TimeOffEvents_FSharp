@@ -1,7 +1,6 @@
 module TimeOff.Tests
 
 open Expecto
-open System
 
 let Given (events: RequestEvent list) = events
 let ConnectedAs (user: User) (events: RequestEvent list) = events, user
