@@ -79,21 +79,25 @@ module Logic =
         let newRequestState = evolveRequest requestState event
         userRequests.Add (event.Request.RequestId, newRequestState)
 
-    let overlapsWith (request1: TimeOffRequest) (request2: TimeOffRequest) =
-        if DateTime.Compare(request1.End.Date, request2.Start.Date) < 0
-           || DateTime.Compare(request1.Start.Date, request2.End.Date) > 0 then
-            false
+    let overlapsWith (request1: TimeOffRequest) (request2: TimeOffRequest) =    
+        if DateTime.Compare(request1.End.Date, request2.Start.Date) < 0 ||
+            DateTime.Compare(request1.Start.Date, request2.End.Date) > 0
+            then false
+        elif DateTime.Compare(request1.End.Date, request2.Start.Date) = 0 &&
+            ((request1.End.HalfDay = HalfDay.AM) && (request2.Start.HalfDay = HalfDay.PM))
+            then false
+        elif DateTime.Compare(request1.Start.Date, request2.End.Date) = 0 &&
+            ((request1.Start.HalfDay = HalfDay.PM) && (request2.End.HalfDay = HalfDay.AM))
+            then false
         else
             true
 
-    // @TODO UN B PUTINB DE IFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
-    let overlapsWithAnyRequest (otherRequests: TimeOffRequest seq) (request: TimeOffRequest) =
-        for requestToCompare in otherRequests do
-            if overlapsWith requestToCompare request
+    let rec overlapsWithAnyRequest (otherRequests: TimeOffRequest seq) (request: TimeOffRequest) =
+        if otherRequests |> Seq.length = 0
+            then false
+        elif (overlapsWith (otherRequests |> Seq.item 0) request) = true
             then true
-            else false
-            
-        false
+        else overlapsWithAnyRequest (otherRequests |> Seq.skip 1) request
 
     let createRequest activeUserRequests request =
         if request |> overlapsWithAnyRequest activeUserRequests then
