@@ -64,6 +64,8 @@ module Logic =
             | Refused _ -> false
 
     type UserRequestsState = Map<Guid, RequestState>
+    
+    let today = DateTime(2019, 1, 1)
 
     let evolveRequest state event =
         match event with
@@ -102,8 +104,7 @@ module Logic =
     let createRequest activeUserRequests request =
         if request |> overlapsWithAnyRequest activeUserRequests then
             Error "Overlapping request"
-        // This DateTime.Today must go away!
-        elif request.Start.Date <= DateTime.Today then
+        elif request.Start.Date <= today then
             Error "The request starts in the past"
         else
             Ok [RequestCreated request]
