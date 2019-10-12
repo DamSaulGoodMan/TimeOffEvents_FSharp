@@ -157,7 +157,7 @@ let overlapTests =
 
 [<Tests>]
 let creationTests =
-    testList "Creation tests" [
+    testList "Creation tests\n" [
         test "A request is created" {
             let request = {
                 UserId = "jdoe"
@@ -218,7 +218,7 @@ let creationTests =
 
 [<Tests>]
 let validationTests =
-    testList "Validation tests" [
+    testList "Validation tests\n" [
         test "A request is validated" {
             let request = {
                 UserId = "jdoe"

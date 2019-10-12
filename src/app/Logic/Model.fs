@@ -1,38 +1,37 @@
 ﻿namespace TimeOff
 
 open System
+open FSharp.Reflection
 
 // Then our commands
 type Command =
     | RequestTimeOff of TimeOffRequest
-    | RequestCancelTimeOff of TimeOffRequest
     | RequestValidateTimeOff of TimeOffRequest
+    | RequestCancelTimeOff of TimeOffRequest
     | RequestRefuseTimeOff of  TimeOffRequest
     with
     member this.UserId =
         match this with
-        | RequestTimeOff request -> request.UserId
-        | RequestCancelTimeOff request -> request.UserId
-        | RequestValidateTimeOff request -> request.UserId
+        | RequestTimeOff request
+        | RequestValidateTimeOff request
+        | RequestCancelTimeOff request
         | RequestRefuseTimeOff request -> request.UserId
 
 // And our events
 type RequestEvent =
     | RequestCreated of TimeOffRequest
-    | RequestCancelAsked of TimeOffRequest
+//    | RequestCancelAsked of TimeOffRequest
     | RequestCancelled of TimeOffRequest
     | RequestValidated of TimeOffRequest
     | RequestRefused of TimeOffRequest
-    | RequestRefusedCancel of TimeOffRequest
     with
     member this.Request =
         match this with
-        | RequestCreated request -> request
-        | RequestCancelAsked request -> request
-        | RequestCancelled request -> request
-        | RequestValidated request -> request
+        | RequestCreated request
+//        | RequestCancelAsked request
+        | RequestCancelled request
+        | RequestValidated request
         | RequestRefused request -> request
-        | RequestRefusedCancel request -> request
 
 // We then define the state of the system,
 // and our 2 main functions `decide` and `evolve`
@@ -40,41 +39,48 @@ module Logic =
     type RequestState =
         | NotCreated
         | PendingValidation of TimeOffRequest
-        | Canceled of TimeOffRequest
+        | PendingCancel of TimeOffRequest
+        | Cancelled of TimeOffRequest
         | Validated of TimeOffRequest
-        | RefuseCancel of TimeOffRequest
         | Refused of TimeOffRequest
         with
         member this.Request =
             match this with
             | NotCreated -> invalidOp "Not created"
+            | Cancelled request
             | PendingValidation request
+            | PendingCancel request
             | Validated request
-            | Canceled request
-            | RefuseCancel request
             | Refused request -> request
             
         member this.IsActive =
             match this with
-            | NotCreated -> false
+            | PendingCancel _
             | PendingValidation _
-            | RefuseCancel _
             | Validated _ -> true
-            | Canceled _
+            | Cancelled _
+            | NotCreated _
             | Refused _ -> false
 
     type UserRequestsState = Map<Guid, RequestState>
     
     let today = DateTime(2019, 1, 1)
 
-    let evolveRequest state event =
+    let evolveRequest (state: RequestState) (event: RequestEvent) =
         match event with
-        | RequestCreated request -> PendingValidation request
-//        | RequestCancelAsked request -> 
-        | RequestCancelled request -> Canceled request
-        | RequestValidated request -> Validated request
-        | RequestRefused request -> Refused request
-        | RequestRefusedCancel request -> RefuseCancel request
+        | RequestCreated request when state.Equals NotCreated ->
+            PendingValidation request
+        | RequestValidated request when state.Request.Equals PendingValidation ||
+                                        state.Request.Equals PendingCancel ->
+            Validated request
+        | RequestRefused request when state.IsActive ->
+            Refused request
+        | RequestCancelled request when state.Request.Equals PendingValidation ||
+                                        state.Request.Equals PendingCancel ->
+            Cancelled request
+//        | RequestCancelAsked request when state.IsActive ->
+//            PendingCancel request
+        | _ -> state
 
     let evolveUserRequests (userRequests: UserRequestsState) (event: RequestEvent) =
         let requestState = defaultArg (Map.tryFind event.Request.RequestId userRequests) NotCreated
@@ -115,7 +121,42 @@ module Logic =
             Ok [RequestValidated request]
         | _ ->
             Error "Request cannot be validated"
-
+            
+    let refuseRequest requestState =
+        match requestState with
+        | PendingValidation request
+        | Validated request ->
+            Ok [RequestCancelled request]
+        | _ ->
+            Error "Request cannot be validated"
+            
+    let cancelRequestAsk requestState =
+        match requestState with
+        | PendingCancel request ->
+            Ok [RequestValidated request]
+        | Validated request
+        | PendingValidation request ->
+            Ok [RequestCancelled request]
+        | _ ->
+            Error "Request cannot be cancel"
+            
+    let cancelRequestByManager requestState =
+        match requestState with
+        | PendingValidation request
+        | PendingCancel request
+        | Validated request
+        | PendingCancel request ->
+            Ok [RequestCancelled request]
+        | _ ->
+            Error "Request cannot be cancel by manager"
+            
+    type FSharpType =
+        static member GetUnionType t =         
+            let ownType = t.GetType()
+            assert FSharpType.IsUnion(ownType)
+            let baseType = ownType.BaseType        
+            if baseType = typeof<System.Object> then ownType else baseType
+    
     let decide (userRequests: UserRequestsState) (user: User) (command: Command) =
         let relatedUserId = command.UserId
         match user with
@@ -139,3 +180,13 @@ module Logic =
                 else
                     let requestState = defaultArg (userRequests.TryFind request.RequestId) NotCreated
                     validateRequest requestState
+
+            | RequestCancelTimeOff request ->
+                if user <> Manager then
+//                    let requestState = userRequests.TryFind request.RequestId
+//                    if RequestState.PendingValidation typeof<requestState.Value>then
+//                        Error ""
+//                    else
+                      Error ""
+                else
+                    Error ""
