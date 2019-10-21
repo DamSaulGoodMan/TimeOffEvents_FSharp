@@ -10,6 +10,8 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Logic", "src\app\Logic\Logi
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Server", "src\app\Server\Server.fsproj", "{FEF3C9AD-A3B8-4594-BB94-1A4D27A0ACC1}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Logic.Tests", "src\test\Logic.Tests\Logic.Tests.fsproj", "{3DA37789-A86A-4BCB-A6C2-0FA27496366C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,6 +34,10 @@ Global
 		{FEF3C9AD-A3B8-4594-BB94-1A4D27A0ACC1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FEF3C9AD-A3B8-4594-BB94-1A4D27A0ACC1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FEF3C9AD-A3B8-4594-BB94-1A4D27A0ACC1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3DA37789-A86A-4BCB-A6C2-0FA27496366C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3DA37789-A86A-4BCB-A6C2-0FA27496366C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3DA37789-A86A-4BCB-A6C2-0FA27496366C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3DA37789-A86A-4BCB-A6C2-0FA27496366C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
