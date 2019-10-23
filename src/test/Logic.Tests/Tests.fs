@@ -17,6 +17,7 @@ let Then expected message (events: RequestEvent list, user: User, command: Comma
         Expect.equal result expected message
 
 open System
+open TimeOff
 
 [<Tests>]
 let overlapTests =
@@ -68,7 +69,7 @@ let overlapTests =
             Expect.isTrue (Logic.overlapsWith request1 request2) "The requests overlap the 10/10/2019"
         }
         
-        test "Requests must overlap one aft day (first day request one)" {
+        test "Requests must overlap one haft day (first day request one)" {
             let request1 = {
                 UserId = "jdoe"
                 RequestId = Guid.NewGuid()
@@ -83,10 +84,10 @@ let overlapTests =
                 End = { Date = DateTime(2019, 10, 10); HalfDay = AM }
             }
 
-            Expect.isTrue (Logic.overlapsWith request1 request2) "The requests overlap one aft day"
+            Expect.isTrue (Logic.overlapsWith request1 request2) "The requests overlap one haft day"
         }
         
-        test "Requests must overlap one aft day (last day request one)" {
+        test "Requests must overlap one haft day (last day request one)" {
             let request1 = {
                 UserId = "jdoe"
                 RequestId = Guid.NewGuid()
@@ -101,7 +102,7 @@ let overlapTests =
                 End = { Date = DateTime(2019, 10, 11); HalfDay = AM }
             }
 
-            Expect.isTrue (Logic.overlapsWith request1 request2) "The requests overlap one aft day"
+            Expect.isTrue (Logic.overlapsWith request1 request2) "The requests overlap one haft day"
         }
         
         test "Request must overlaps with the others" {
@@ -171,14 +172,15 @@ let creationTests =
             |> Then (Ok [ RequestCreated request ]) "The request should have been created"
         }
         
-        test "A reques cannot be created by an other Employee" {
+        test "A request cannot be created by an other Employee" {
             let request = {
                 UserId = "jdoe"
                 RequestId = Guid.NewGuid()
                 Start = { Date = DateTime(2019, 12, 27); HalfDay = AM }
                 End = { Date = DateTime(2019, 12, 27); HalfDay = PM } }
 
-            Given []
+            Given
+            []
             |> ConnectedAs(Employee "toto")
             |> When(RequestTimeOff request)
             |> Then (Error "Unauthorized") "The request shouldn't have been created"
@@ -245,3 +247,40 @@ let validationTests =
             |> Then (Error "Unauthorized") "The request shouldn't have been validated"
         }
     ]
+    
+    
+[<Tests>]
+let refuseTests = 
+    testList "Refuse tests\n" [
+        test "A request is refused if the user is not a Manager" {
+            let request = {
+                UserId = ""
+                RequestId = Guid.NewGuid()
+                Start = { Date = DateTime(2019, 11, 10); HalfDay = AM }
+                End = { Date = DateTime(2019, 11, 1); HalfDay = AM } }
+                
+            Given [RequestCreated request]
+            |> ConnectedAs (Employee "iamEmployee")
+            |> When (RequestCancelTimeOff request)
+            |> Then (Error "Unauthorized") "The request should have been refused"
+        }
+    ]    
+ 
+[<Tests>]
+let cancellationByEmployeeTests =
+    testList "Cancellation tests\n" [
+        test "A request starting in the future is cancelled by an employer" {
+            let request = {
+                    UserId = "jdoe"
+                    RequestId = Guid.NewGuid()
+                    Start = { Date = DateTime(2019, 12, 27); HalfDay = AM }
+                    End = { Date = DateTime(2019, 12, 27); HalfDay = PM } }
+        
+            Given [ RequestCreated request ]
+                |> ConnectedAs (Employee "toto")
+                |> When (RequestCancelTimeOff request)
+                |> Then (Error "Unauthorized") "The request should have been cancelled"
+        }
+    ]
+
+

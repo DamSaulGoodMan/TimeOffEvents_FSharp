@@ -20,7 +20,6 @@ type Command =
 // And our events
 type RequestEvent =
     | RequestCreated of TimeOffRequest
-//    | RequestCancelAsked of TimeOffRequest
     | RequestCancelled of TimeOffRequest
     | RequestValidated of TimeOffRequest
     | RequestRefused of TimeOffRequest
@@ -78,8 +77,6 @@ module Logic =
         | RequestCancelled request when state.Request.Equals PendingValidation ||
                                         state.Request.Equals PendingCancel ->
             Cancelled request
-//        | RequestCancelAsked request when state.IsActive ->
-//            PendingCancel request
         | _ -> state
 
     let evolveUserRequests (userRequests: UserRequestsState) (event: RequestEvent) =
@@ -130,7 +127,7 @@ module Logic =
         | _ ->
             Error "Request cannot be validated"
             
-    let cancelRequestAsk requestState =
+    let cancelRequestAsk requestState=
         match requestState with
         | PendingCancel request ->
             Ok [RequestValidated request]
@@ -182,11 +179,22 @@ module Logic =
                     validateRequest requestState
 
             | RequestCancelTimeOff request ->
-                if user <> Manager then
+                //if user <> Manager then
 //                    let requestState = userRequests.TryFind request.RequestId
 //                    if RequestState.PendingValidation typeof<requestState.Value>then
 //                        Error ""
 //                    else
-                      Error ""
+                if user <> Manager then
+                    let requestState = defaultArg(userRequests.TryFind request.RequestId) NotCreated
+                    Ok [RequestCancelled requestState.Request]
+                else 
+                    //Error ""
+                    let requestState = defaultArg (userRequests.TryFind request.RequestId) NotCreated
+                    cancelRequestAsk requestState
+                    
+            | RequestRefuseTimeOff request ->
+                if user <> Manager then
+                    Error "Unauthorized"
                 else
-                    Error ""
+                    let requestState = defaultArg (userRequests.TryFind request.RequestId) NotCreated
+                    refuseRequest requestState
