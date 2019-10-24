@@ -25,6 +25,7 @@ let defaultRequest = {
     End = { Date = DateTime(2019, 1, 3); HalfDay = PM }
     Creation = DateTime(2019, 1, 1)
 }
+    
 
 [<Tests>]
 let overlapTests =
@@ -221,11 +222,7 @@ let creationTests =
 let validationTests =
     testList "Validation tests\n" [
         test "A request is validated" {
-            let request = {
-                UserId = "jdoe"
-                RequestId = Guid.NewGuid()
-                Start = { Date = DateTime(2019, 12, 27); HalfDay = AM }
-                End = { Date = DateTime(2019, 12, 27); HalfDay = PM } }
+            let request = defaultRequest
 
             Given [ RequestCreated request ]
             |> ConnectedAs Manager
@@ -234,14 +231,10 @@ let validationTests =
         }
         
         test "A request is unvalidated if the user is not a Manager" {
-            let request = {
-                UserId = "jdoe"
-                RequestId = Guid.NewGuid()
-                Start = { Date = DateTime(2019, 12, 27); HalfDay = AM }
-                End = { Date = DateTime(2019, 12, 27); HalfDay = PM } }
+            let request = defaultRequest
 
             Given [ RequestCreated request ]
-            |> ConnectedAs (Employee "toto")
+            |> ConnectedAs (Employee "jdoe")
             |> When(RequestValidateTimeOff request)
             |> Then (Error "Unauthorized") "The request shouldn't have been validated"
         }

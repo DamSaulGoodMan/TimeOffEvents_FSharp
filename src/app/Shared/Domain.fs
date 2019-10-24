@@ -1,8 +1,6 @@
-﻿open System
-
-namespace TimeOff
-
+﻿namespace TimeOff
 open System
+
 
 // First, we define our domain
 type UserId = string
