@@ -1,7 +1,6 @@
 ﻿namespace TimeOff
 
 open System
-open FSharp.Reflection
 
 // Then our commands
 type Command =
@@ -63,8 +62,6 @@ module Logic =
             | Refused _ -> false
 
     type UserRequestsState = Map<Guid, RequestState>
-    
-    let today = DateTime(2019, 1, 1)
 
     let evolveRequest (state: RequestState) (event: RequestEvent) =
         match event with
@@ -110,7 +107,7 @@ module Logic =
     let createRequest activeUserRequests request =
         if request |> overlapsWithAnyRequest activeUserRequests then
             Error "Overlapping request"
-        elif request.Start.Date <= today then
+        elif request.Start.Date <= request.Creation then
             Error "The request starts in the past"
         else
             Ok [RequestCreated request]
@@ -150,12 +147,6 @@ module Logic =
         | _ ->
             Error "Request cannot be cancel by manager"
             
-    type FSharpType =
-        static member GetUnionType t =         
-            let ownType = t.GetType()
-            assert FSharpType.IsUnion(ownType)
-            let baseType = ownType.BaseType        
-            if baseType = typeof<System.Object> then ownType else baseType
     
     let decide (userRequests: UserRequestsState) (user: User) (command: Command) =
         let relatedUserId = command.UserId
@@ -183,10 +174,7 @@ module Logic =
 
             | RequestCancelTimeOff request ->
                 if user <> Manager then
-//                    let requestState = userRequests.TryFind request.RequestId
-//                    if RequestState.PendingValidation typeof<requestState.Value>then
-//                        Error ""
-//                    else
+
                       Error ""
                 else
                     Error ""

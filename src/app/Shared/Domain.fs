@@ -1,4 +1,6 @@
-﻿namespace TimeOff
+﻿open System
+
+namespace TimeOff
 
 open System
 
@@ -25,6 +27,7 @@ type TimeOffRequest = {
     RequestId: Guid
     Start: Boundary
     End: Boundary
+    Creation: DateTime
 }
 
 //[<CLIMutable>]
