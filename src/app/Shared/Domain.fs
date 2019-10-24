@@ -27,39 +27,3 @@ type TimeOffRequest = {
     End: Boundary
     Creation: DateTime
 }
-
-//[<CLIMutable>]
-//type TimeOffCancel = {
-//    UserId: UserId
-//    RequestId: Guid
-//}
-//
-//[<CLIMutable>]
-//type TimeOffRequestCancel = {
-//    UserId: UserId
-//    RequestId: Guid
-//}
-//
-//
-//// Manager
-//[<CLIMutable>]
-//type TimeOffValidate = {
-//    UserId: UserId
-//    RequestId: Guid
-//    Manager: User
-//}
-//
-//[<CLIMutable>]
-//type TimeOffRefuse = {
-//    UserId: UserId
-//    RequestId: Guid
-//    Manager: User
-//}
-//
-//[<CLIMutable>]
-//type TimeOffRefuseCancel = {
-//    UserId: UserId
-//    RequestId: Guid
-//    Manager: User
-//}
-

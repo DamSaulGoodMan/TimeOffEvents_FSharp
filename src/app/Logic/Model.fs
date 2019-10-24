@@ -1,5 +1,4 @@
 ﻿namespace TimeOff
-
 open System
 
 // Then our commands
@@ -118,7 +117,8 @@ module Logic =
             Ok [RequestValidated request]
         | _ ->
             Error "Request cannot be validated"
-            
+           
+    // User
     let refuseRequest requestState =
         match requestState with
         | PendingValidation request
@@ -126,7 +126,8 @@ module Logic =
             Ok [RequestCancelled request]
         | _ ->
             Error "Request cannot be validated"
-            
+    
+    // User
     let cancelRequestAsk requestState =
         match requestState with
         | PendingCancel request ->
@@ -136,7 +137,8 @@ module Logic =
             Ok [RequestCancelled request]
         | _ ->
             Error "Request cannot be cancel"
-            
+    
+    // Manager
     let cancelRequestByManager requestState =
         match requestState with
         | PendingValidation request
@@ -174,7 +176,16 @@ module Logic =
 
             | RequestCancelTimeOff request ->
                 if user <> Manager then
-
-                      Error ""
+                    let requestState = defaultArg (userRequests.TryFind request.RequestId) NotCreated
+                    cancelRequestAsk requestState
+                    
                 else
-                    Error ""
+                    let requestState = defaultArg (userRequests.TryFind request.RequestId) NotCreated
+                    cancelRequestByManager requestState
+            
+            | RequestRefuseTimeOff request ->
+                if user <> Manager then
+                    Error "Unauthorized"
+                else
+                    let requestState = defaultArg (userRequests.TryFind request.RequestId) NotCreated
+                    refuseRequest requestState

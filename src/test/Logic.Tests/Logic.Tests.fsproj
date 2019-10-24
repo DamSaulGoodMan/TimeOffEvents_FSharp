@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>Exe</OutputType>
@@ -10,7 +10,9 @@
         </ProjectReference>
     </ItemGroup>
     <ItemGroup>
-        <Compile Include="Tests.fs" />
+        <Compile Include="GWTLogic.fs" />
+        <Compile Include="TestRequestCommand.fs" />
+        <Compile Include="TestResquestTime.fs" />
         <Compile Include="Program.fs" />
     </ItemGroup>
     <ItemGroup>

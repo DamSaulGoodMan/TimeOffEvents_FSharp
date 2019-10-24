@@ -1,21 +1,7 @@
-module TimeOff.Tests
+module TimeOff.Tests.GWTLogic.TestRequestTime
 
+open TimeOff
 open Expecto
-
-let Given(events: RequestEvent list) = events
-let ConnectedAs (user: User) (events: RequestEvent list) = events, user
-let When (command: Command) (events: RequestEvent list, user: User) = events, user, command
-let Then expected message (events: RequestEvent list, user: User, command: Command) =
-        let evolveGlobalState (userStates: Map<UserId, Logic.UserRequestsState>) (event: RequestEvent) =
-                let userState = defaultArg (Map.tryFind event.Request.UserId userStates) Map.empty
-                let newUserState = Logic.evolveUserRequests userState event
-                userStates.Add(event.Request.UserId, newUserState)
-
-        let globalState = Seq.fold evolveGlobalState Map.empty events
-        let userRequestsState = defaultArg (Map.tryFind command.UserId globalState) Map.empty
-        let result = Logic.decide userRequestsState user command
-        Expect.equal result expected message
-
 open System
 
 let defaultRequest = {
@@ -153,89 +139,5 @@ let overlapTests =
 
             Expect.isTrue (Logic.overlapsWithAnyRequest [request0; request1] requestTest)
                 "The requests overlap the others one"
-        }
-    ]
-
-[<Tests>]
-let creationTests =
-    testList "Creation tests\n" [
-        test "A request is created" {
-            let request = {
-                defaultRequest
-                with UserId = "jdoe"
-            }
-            
-            Given []
-            |> ConnectedAs(Employee "jdoe")
-            |> When(RequestTimeOff request)
-            |> Then (Ok [ RequestCreated request ]) "The request should have been created"
-        }
-        
-        test "A reques cannot be created by an other Employee" {
-            let request = {
-                defaultRequest
-                with UserId = "toto"
-            }
-            
-            Given []
-            |> ConnectedAs(Employee "jdoe")
-            |> When(RequestTimeOff request)
-            |> Then (Error "Unauthorized") "The request shouldn't have been created"
-        }
-        
-        test "A request cannot be created when it start in the past" {
-            let request = {
-                defaultRequest
-                with
-                    Start = { Date = DateTime(2019, 1, 1); HalfDay = AM }
-                    Creation = DateTime(2019, 1, 2)
-            }
-
-            Given []
-            |> ConnectedAs(Employee "jdoe")
-            |> When(RequestTimeOff request)
-            |> Then (Error("The request starts in the past")) "The request shouldn't have been created"
-        }
-        
-        test "A request cannot be created when it overlaps an other one" {
-            let request = {
-                defaultRequest
-                with
-                    Start = { Date = DateTime(2019, 10, 11); HalfDay = AM }
-                    End = { Date = DateTime(2019, 12, 27); HalfDay = PM }
-            }
-            let requestOverlapsed = {
-                defaultRequest
-                with
-                    Start = { Date = DateTime(2019, 10, 11); HalfDay = AM }
-                    End = { Date = DateTime(2019, 12, 27); HalfDay = PM }
-            }
-            
-            Given [ RequestCreated requestOverlapsed ]
-            |> ConnectedAs(Employee "jdoe")
-            |> When(RequestTimeOff request)
-            |> Then (Error("Overlapping request")) "The request shouldn't have been created"
-        }
-    ]
-
-[<Tests>]
-let validationTests =
-    testList "Validation tests\n" [
-        test "A request is validated" {
-            let request = defaultRequest
-
-            Given [ RequestCreated request ]
-            |> ConnectedAs Manager
-            |> When(RequestValidateTimeOff request)
-            |> Then (Ok [ RequestValidated request ]) "The request should have been validated"
-        }
-        
-        test "A request is unvalidated if the user is not a Manager" {
-            let request = defaultRequest
-
-            Given [ RequestCreated request ]
-            |> ConnectedAs (Employee "jdoe")
-            |> When(RequestValidateTimeOff request)
-            |> Then (Error "Unauthorized") "The request shouldn't have been validated"
         }
     ]
