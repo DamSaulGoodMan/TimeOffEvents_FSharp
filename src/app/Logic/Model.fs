@@ -103,13 +103,13 @@ module Logic =
             then true
         else overlapsWithAnyRequest (otherRequests |> Seq.skip 1) request
 
-    let createRequest activeUserRequests request =
+    let createRequest (today: DateTime) activeUserRequests request =
         if request |> overlapsWithAnyRequest activeUserRequests then
             Error "Overlapping request"
-        elif request.Start.Date <= request.Creation then
+        elif request.Start.Date <= today then
             Error "The request starts in the past"
         else
-            Ok [RequestCreated request]
+            Error "Request already created"
 
     let validateRequest requestState =
         match requestState with
@@ -150,7 +150,7 @@ module Logic =
             Error "Request cannot be cancel by manager"
             
     
-    let decide (userRequests: UserRequestsState) (user: User) (command: Command) =
+    let decide (today: DateTime) (userRequests: UserRequestsState) (user: User) (command: Command) =
         let relatedUserId = command.UserId
         match user with
         | Employee userId when userId <> relatedUserId ->
@@ -165,7 +165,7 @@ module Logic =
                     |> Seq.where (fun state -> state.IsActive)
                     |> Seq.map (fun state -> state.Request)
 
-                createRequest activeUserRequests request
+                createRequest today activeUserRequests request
 
             | RequestValidateTimeOff request ->
                 if user <> Manager then

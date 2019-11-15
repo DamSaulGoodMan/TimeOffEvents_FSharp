@@ -5,6 +5,9 @@ open TimeOff.Logic
 open Expecto
 open System
 
+
+let dateOfToday = DateTime(2019, 1, 1)
+
 let defaultRequest = {
     UserId = "jdoe"
     RequestId = Guid.NewGuid()
@@ -58,7 +61,7 @@ let creationTests =
                 with UserId = "jdoe"
             }
             
-            Given []
+            Given dateOfToday []
             |> ConnectedAs(Employee "jdoe")
             |> When(RequestTimeOff request)
             |> Then (Ok [ RequestCreated request ]) "The request should have been created"
@@ -70,7 +73,7 @@ let creationTests =
                 with UserId = "toto"
             }
             
-            Given []
+            Given dateOfToday []
             |> ConnectedAs(Employee "jdoe")
             |> When(RequestTimeOff request)
             |> Then (Error "Unauthorized") "The request shouldn't have been created"
@@ -84,7 +87,7 @@ let creationTests =
                     Creation = DateTime(2019, 1, 2)
             }
 
-            Given []
+            Given dateOfToday []
             |> ConnectedAs(Employee "jdoe")
             |> When(RequestTimeOff request)
             |> Then (Error("The request starts in the past")) "The request shouldn't have been created"
@@ -104,7 +107,7 @@ let creationTests =
                     End = { Date = DateTime(2019, 12, 27); HalfDay = PM }
             }
             
-            Given [ RequestCreated requestOverlapsed ]
+            Given dateOfToday [ RequestCreated requestOverlapsed ]
             |> ConnectedAs(Employee "jdoe")
             |> When(RequestTimeOff request)
             |> Then (Error("Overlapping request")) "The request shouldn't have been created"
@@ -117,7 +120,7 @@ let validationTests =
         test "A request is validated" {
             let request = defaultRequest
 
-            Given [ RequestCreated request ]
+            Given dateOfToday [ RequestCreated request ]
             |> ConnectedAs Manager
             |> When(RequestValidateTimeOff request)
             |> Then (Ok [ RequestValidated request ]) "The request should have been validated"
@@ -126,7 +129,7 @@ let validationTests =
         test "A request is unvalidated if the user is not a Manager" {
             let request = defaultRequest
 
-            Given [ RequestCreated request ]
+            Given dateOfToday [ RequestCreated request ]
             |> ConnectedAs (Employee "jdoe")
             |> When(RequestValidateTimeOff request)
             |> Then (Error "Unauthorized") "The request shouldn't have been validated"
