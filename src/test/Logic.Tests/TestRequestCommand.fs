@@ -8,7 +8,7 @@ open System
 
 let dateOfToday = DateTime(2019, 1, 1)
 
-let defaultRequest = {
+let defaultValideRequest = {
     UserId = "jdoe"
     RequestId = Guid.NewGuid()
     Start = { Date = DateTime(2019, 1, 2); HalfDay = PM }
@@ -16,48 +16,64 @@ let defaultRequest = {
     Creation = DateTime(2019, 1, 1)
 }
 
-let commandResponseAccordingToStates = [
-    [RequestTimeOff,
-        [NotCreated, "Allowed"],
-        [PendingValidation, "Unauthorized"],
-        [PendingCancel, "Unauthorized"],
-        [Cancelled, "Unauthorized"],
-        [Validated, "Unauthorized"],
-        [Refused, "Unauthorized"]
+    
+let requestCannotBeValidate request =
+    Error "Request cannot be validate"
+    
+let cannotAskToCancelRequestByUser request =
+    Error "Cannot ask to cancel request"
+
+let requestCannotBeRefuse request =
+    Error "Request cannot be refuse"
+
+let commandResponseForUser = [
+    [ValidateTimeOff,
+        [NotCreated, requestCannotBeValidate],
+        [PendingValidation, requestCannotBeValidate],
+        [PendingCancel, RequestValidated],
+        [Validated, requestCannotBeValidate],
+        [Refused, requestCannotBeValidate]
     ],
-    [RequestValidateTimeOff,
-        [NotCreated, "Unauthorized"],
-        [PendingValidation, "Allowed"],
-        [PendingCancel, "Allowed"],
-        [Cancelled, "Unauthorized"],
-        [Validated, "Unauthorized"],
-        [Refused, "Unauthorized"]
+    [AskCancelTimeOff,
+        [NotCreated, cannotAskToCancelRequestByUser],
+        [PendingValidation, cannotAskToCancelRequestByUser],
+        [PendingCancel, cannotAskToCancelRequestByUser],
+        [Validated, RequestCancelAsked],
+        [Refused, cannotAskToCancelRequestByUser]
     ],
-    [RequestCancelTimeOff,
-        [NotCreated, "Unauthorized"],
-        [PendingValidation, "Allowed"],
-        [PendingCancel, "Allowed"],
-        [Cancelled, "Allowed"],
-        [Validated, "Unauthorized"],
-        [Refused, "Unauthorized"]
-    ],
-    [RequestRefuseTimeOff,
-        [NotCreated, "Unauthorized"],
-        [PendingValidation, "Unauthorized"],
-        [PendingCancel, "Allowed"],
-        [Cancelled, "Allowed"],
-        [Validated, "Unauthorized"],
-        [Refused, "Unauthorized"]
+    [RefuseTimeOff,
+        [NotCreated, requestCannotBeRefuse],
+        [PendingValidation, requestCannotBeRefuse],
+        [PendingCancel, RequestRefused],
+        [Validated, requestCannotBeRefuse],
+        [Refused, requestCannotBeRefuse]
     ]
 ]
 
+
+let commandResponseForManager = [
+    [ValidateTimeOff,
+        [NotCreated, requestCannotBeValidate],
+        [PendingValidation, RequestValidated],
+        [PendingCancel, RequestValidated],
+        [Validated, requestCannotBeValidate],
+        [Refused, requestCannotBeValidate]
+    ],
+    [RefuseTimeOff,
+        [NotCreated, requestCannotBeRefuse],
+        [PendingValidation, RequestRefused],
+        [PendingCancel, RequestRefused],
+        [Validated, RequestRefused],
+        [Refused, requestCannotBeRefuse]
+    ]
+]
 
 [<Tests>]
 let creationTests =
     testList "Creation tests\n" [
         test "A request is created" {
             let request = {
-                defaultRequest
+                defaultValideRequest
                 with UserId = "jdoe"
             }
             
@@ -69,7 +85,7 @@ let creationTests =
         
         test "A reques cannot be created by an other Employee" {
             let request = {
-                defaultRequest
+                defaultValideRequest
                 with UserId = "toto"
             }
             
@@ -81,7 +97,7 @@ let creationTests =
         
         test "A request cannot be created when it start in the past" {
             let request = {
-                defaultRequest
+                defaultValideRequest
                 with
                     Start = { Date = DateTime(2019, 1, 1); HalfDay = AM }
                     Creation = DateTime(2019, 1, 2)
@@ -95,13 +111,13 @@ let creationTests =
         
         test "A request cannot be created when it overlaps an other one" {
             let request = {
-                defaultRequest
+                defaultValideRequest
                 with
                     Start = { Date = DateTime(2019, 10, 11); HalfDay = AM }
                     End = { Date = DateTime(2019, 12, 27); HalfDay = PM }
             }
             let requestOverlapsed = {
-                defaultRequest
+                defaultValideRequest
                 with
                     Start = { Date = DateTime(2019, 10, 11); HalfDay = AM }
                     End = { Date = DateTime(2019, 12, 27); HalfDay = PM }
@@ -118,20 +134,20 @@ let creationTests =
 let validationTests =
     testList "Validation tests\n" [
         test "A request is validated" {
-            let request = defaultRequest
+            let request = defaultValideRequest
 
             Given dateOfToday [ RequestCreated request ]
             |> ConnectedAs Manager
-            |> When(RequestValidateTimeOff request)
+            |> When(ValidateTimeOff request)
             |> Then (Ok [ RequestValidated request ]) "The request should have been validated"
         }
         
         test "A request is unvalidated if the user is not a Manager" {
-            let request = defaultRequest
+            let request = defaultValideRequest
 
             Given dateOfToday [ RequestCreated request ]
             |> ConnectedAs (Employee "jdoe")
-            |> When(RequestValidateTimeOff request)
+            |> When(ValidateTimeOff request)
             |> Then (Error "Unauthorized") "The request shouldn't have been validated"
         }
     ]
