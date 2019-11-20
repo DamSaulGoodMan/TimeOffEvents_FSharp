@@ -27,3 +27,18 @@ type TimeOffRequest = {
     End: Boundary
     Creation: DateTime
 }
+
+[<CLIMutable>]
+type UpdateRequestState = {
+    UserId: UserId
+    RequestId: Guid
+    Start: Boundary
+    Creation: DateTime
+}
+
+[<CLIMutable>]
+type TimeOffRefuse = {
+    UserId: UserId
+    RequestId: Guid
+    Creation: DateTime
+}

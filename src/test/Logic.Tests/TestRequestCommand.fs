@@ -16,58 +16,6 @@ let defaultValideRequest = {
     Creation = DateTime(2019, 1, 1)
 }
 
-    
-let requestCannotBeValidate request =
-    Error "Request cannot be validate"
-    
-let cannotAskToCancelRequestByUser request =
-    Error "Cannot ask to cancel request"
-
-let requestCannotBeRefuse request =
-    Error "Request cannot be refuse"
-
-let commandResponseForUser = [
-    [ValidateTimeOff,
-        [NotCreated, requestCannotBeValidate],
-        [PendingValidation, requestCannotBeValidate],
-        [PendingCancel, RequestValidated],
-        [Validated, requestCannotBeValidate],
-        [Refused, requestCannotBeValidate]
-    ],
-    [AskCancelTimeOff,
-        [NotCreated, cannotAskToCancelRequestByUser],
-        [PendingValidation, cannotAskToCancelRequestByUser],
-        [PendingCancel, cannotAskToCancelRequestByUser],
-        [Validated, RequestCancelAsked],
-        [Refused, cannotAskToCancelRequestByUser]
-    ],
-    [RefuseTimeOff,
-        [NotCreated, requestCannotBeRefuse],
-        [PendingValidation, requestCannotBeRefuse],
-        [PendingCancel, RequestRefused],
-        [Validated, requestCannotBeRefuse],
-        [Refused, requestCannotBeRefuse]
-    ]
-]
-
-
-let commandResponseForManager = [
-    [ValidateTimeOff,
-        [NotCreated, requestCannotBeValidate],
-        [PendingValidation, RequestValidated],
-        [PendingCancel, RequestValidated],
-        [Validated, requestCannotBeValidate],
-        [Refused, requestCannotBeValidate]
-    ],
-    [RefuseTimeOff,
-        [NotCreated, requestCannotBeRefuse],
-        [PendingValidation, RequestRefused],
-        [PendingCancel, RequestRefused],
-        [Validated, RequestRefused],
-        [Refused, requestCannotBeRefuse]
-    ]
-]
-
 [<Tests>]
 let creationTests =
     testList "Creation tests\n" [
@@ -138,7 +86,7 @@ let validationTests =
 
             Given dateOfToday [ RequestCreated request ]
             |> ConnectedAs Manager
-            |> When(ValidateTimeOff request)
+            |> When(ValidateRequest request)
             |> Then (Ok [ RequestValidated request ]) "The request should have been validated"
         }
         
@@ -147,7 +95,55 @@ let validationTests =
 
             Given dateOfToday [ RequestCreated request ]
             |> ConnectedAs (Employee "jdoe")
-            |> When(ValidateTimeOff request)
+            |> When(ValidateRequest request)
             |> Then (Error "Unauthorized") "The request shouldn't have been validated"
         }
     ]
+    
+[<CLIMutable>]
+type Boundary = {
+    State: RequestState
+    taputedemere: RequestEvent
+}
+
+(*[PendingValidation, RequestCancelAsked]
+    [PendingCancel, RequestCancelAsked]
+    [Validated, RequestCancelAsked] 
+    [Refused, Invalid]
+    
+let commandResponseForUser = [|
+    {State = NotCreated; taputedemere = RequestCreated} 
+|]
+
+[<Tests>]
+let responseForUserCommand =
+    testList "User request responses tests\n" [
+        test "A request is validated" {
+            for requestCell in commandResponseForUser do
+                let request = defaultValideRequest
+
+                Given dateOfToday [ RequestCancelAsked request ]
+                |> ConnectedAs (Employee "Toto")
+                |> When(requestCell.State request)
+                |> Then (Ok [ requestCell.[1] request ]) ""
+        }
+    ] *)
+    
+
+
+let commandResponseForManager = [
+    [ValidateRequest,
+        [NotCreated, Invalid],
+        [PendingValidation, RequestValidated],
+        [PendingCancel, RequestValidated],
+        [Validated, Invalid],
+        [Refused, Invalid]
+    ],
+    [RefuseRequest,
+        [NotCreated, Invalid],
+        [PendingValidation, RequestRefused],
+        [PendingCancel, RequestRefused],
+        [Validated, RequestRefused],
+        [Refused, Invalid]
+    ]
+]
