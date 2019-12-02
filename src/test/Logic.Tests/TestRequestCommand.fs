@@ -15,6 +15,7 @@ let defaultValideRequest = {
     End = { Date = DateTime(2019, 1, 3); HalfDay = PM }
     Creation = DateTime(2019, 1, 1)
 }
+let defaultEmployed = Employee "User"
 
 [<Tests>]
 let creationTests =
@@ -103,33 +104,51 @@ let validationTests =
 [<CLIMutable>]
 type Boundary = {
     State: RequestState
-    taputedemere: RequestEvent
+    event: RequestEvent
 }
 
-(*[PendingValidation, RequestCancelAsked]
-    [PendingCancel, RequestCancelAsked]
-    [Validated, RequestCancelAsked] 
-    [Refused, Invalid]
+//[PendingValidation, RequestCancelAsked]
+//    [PendingCancel, RequestCancelAsked]
+//    [Validated, RequestCancelAsked] 
+//    [Refused, Invalid]
     
-let commandResponseForUser = [|
-    {State = NotCreated; taputedemere = RequestCreated} 
-|]
+//let commandResponseForUser = [|
+//    {State = NotCreated; event = RequestCreated} 
+//|]
 
 [<Tests>]
 let responseForUserCommand =
-    testList "User request responses tests\n" [
-        test "A request is validated" {
-            for requestCell in commandResponseForUser do
-                let request = defaultValideRequest
-
-                Given dateOfToday [ RequestCancelAsked request ]
-                |> ConnectedAs (Employee "Toto")
-                |> When(requestCell.State request)
-                |> Then (Ok [ requestCell.[1] request ]) ""
+    testList "Employee ask for cancel request\n" [
+        test "For a request in pending validation state" {
+                Given dateOfToday [ RequestCreated defaultValideRequest ]
+                |> ConnectedAs (defaultEmployed)
+                |> When(AskCancelRequest defaultValideRequest)
+                |> Then (Ok [ RequestRefused defaultValideRequest ]) "The request is cancel"
         }
-    ] *)
-    
-
+        test "For a request in pending cancelation state" {
+                Given dateOfToday [ RequestCreated defaultValideRequest
+                                    RequestValidated defaultValideRequest
+                                    RequestCancelAsked defaultValideRequest]
+                |> ConnectedAs (defaultEmployed)
+                |> When(AskCancelRequest defaultValideRequest)
+                |> Then (Ok [ RequestValidated defaultValideRequest ]) "The cancel asked is invalidated"
+        }
+        test "For a validated request" {
+                Given dateOfToday [ RequestCreated defaultValideRequest
+                                    RequestValidated defaultValideRequest ]
+                |> ConnectedAs (defaultEmployed)
+                |> When(AskCancelRequest defaultValideRequest)
+                |> Then (Ok [ RequestCancelAsked defaultValideRequest ]) "The request is pending admin validation"
+        }
+        test "For a refused requesy" {
+                Given dateOfToday [ RequestCreated defaultValideRequest
+                                    RequestRefused defaultValideRequest ]
+                |> ConnectedAs (defaultEmployed)
+                |> When(AskCancelRequest defaultValideRequest)
+                // @TODO here must be change
+                |> Then (Ok [ defaultValideRequest ]) "The request cannot be cancel"
+        }
+    ]
 
 let commandResponseForManager = [
     [ValidateRequest,
@@ -137,7 +156,7 @@ let commandResponseForManager = [
         [PendingValidation, RequestValidated],
         [PendingCancel, RequestValidated],
         [Validated, Invalid],
-        [Refused, Invalid]
+        [refusedCase, Invalid]
     ],
     [RefuseRequest,
         [NotCreated, Invalid],
