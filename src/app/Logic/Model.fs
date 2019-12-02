@@ -30,6 +30,7 @@ type RequestEvent =
         | RequestValidated request
         | RequestRefused request -> request
         | Invalid request -> request
+        
 
 // We then define the state of the system,
 // and our 2 main functions `decide` and `evolve`
@@ -110,13 +111,19 @@ module Logic =
             Ok [RequestCreated request]
             
     let cancelRequestAsk requestState =
+        Console.Error.WriteLine "cancelRequestAsk"
         match requestState with
         | Validated request ->
             Ok [RequestCancelAsked request]
+        | PendingValidation request ->
+            Ok [RequestRefused request]
+        | PendingCancel request ->
+            Ok [RequestValidated request]
         | _ ->
             Error "Cannot ask to cancel request"
 
     let validateRequest requestState =
+        Console.Error.WriteLine ("validateRequest", requestState.ToString)
         match requestState with
         | PendingValidation request ->
             Ok [RequestValidated request]
@@ -124,6 +131,7 @@ module Logic =
             Error "Request cannot be validate"
                   
     let refuseRequest requestState =
+        Console.Error.WriteLine ("refuseRequest", requestState.ToString)
         match requestState with
         | PendingValidation request
         | Validated request
