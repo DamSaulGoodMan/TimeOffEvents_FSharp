@@ -17,6 +17,7 @@
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Expecto" Version="8.*" />
+        <PackageReference Include="Giraffe" Version="4.0.1" />
     </ItemGroup>
     <Import Project="..\..\..\.paket\Paket.Restore.targets" />
 </Project>

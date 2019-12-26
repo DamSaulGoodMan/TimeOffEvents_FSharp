@@ -40,19 +40,35 @@ module HttpHandlers =
                     return! (BAD_REQUEST message) next ctx
             }
 
-//    let validateRequest (handleCommand: Command -> Result<RequestEvent list, string>) =
-//        fun (next: HttpFunc) (ctx: HttpContext) ->
-//            task {
-//                let userAndRequestId = ctx.BindQueryString<UserAndRequestId>()
-//                let command = ValidateRequest (userAndRequestId.UserId, userAndRequestId.RequestId)
-//                let result = handleCommand command
-//                match result with
-//                | Ok [RequestValidated timeOffRequest] -> return! json timeOffRequest next ctx
-//                | Ok _ -> return! Successful.NO_CONTENT next ctx
-//                | Error message ->
-//                    return! (BAD_REQUEST message) next ctx
-//            }
-
+    (*
+    let validateRequest (handleCommand: Command -> Result<RequestEvent list, string>) =
+         fun (next: HttpFunc) (ctx: HttpContext) ->
+             task {
+                 let userAndRequestId = ctx.BindQueryString<UserAndRequestId>()
+                 let command = ValidateRequest (userAndRequestId.UserId, userAndRequestId.RequestId)
+                 let result = handleCommand command
+                 match result with
+                 | Ok [RequestValidated timeOffRequest] -> return! json timeOffRequest next ctx
+                 | Ok _ -> return! Successful.NO_CONTENT next ctx
+                 | Error message ->
+                     return! (BAD_REQUEST message) next ctx
+             }
+    *)
+    
+    let validateRequest (handleCommand: Command -> Result<RequestEvent list, string>) =
+        fun (next: HttpFunc) (ctx: HttpContext) ->
+            task {
+                //let userAndRequestId = ctx.BindQueryString<UserAndRequestId>()
+                //let command = ValidateRequest (userAndRequestId.UserId, userAndRequestId.RequestId)
+                let requestTimeOff = ctx.BindQueryString<TimeOffRequest>()
+                let command = ValidateRequest requestTimeOff
+                let result = handleCommand command
+                match result with
+                | Ok [RequestValidated timeOffRequest] -> return! json timeOffRequest next ctx
+                | Ok _ -> return! Successful.NO_CONTENT next ctx
+                | Error message ->
+                    return! (BAD_REQUEST message) next ctx
+            }
 // ---------------------------------
 // Web app
 // ---------------------------------
@@ -65,7 +81,7 @@ let webApp (eventStore: IStore<UserId, RequestEvent>) =
         let state = eventStream.ReadAll() |> Seq.fold Logic.evolveUserRequests Map.empty
 
         // Decide how to handle the command
-        let result = Logic.decide state user command
+        let result = Logic.decide DateTime.Now state user command
 
         // Save events in case of success
         match result with
@@ -74,7 +90,8 @@ let webApp (eventStore: IStore<UserId, RequestEvent>) =
 
         // Finally, return the result
         result
-        
+    
+    (*
     choose [
         subRoute "/api"
             (choose [
@@ -83,14 +100,35 @@ let webApp (eventStore: IStore<UserId, RequestEvent>) =
                     (Auth.Handlers.requiresJwtTokenForAPI (fun user ->
                         choose [
                             POST >=> route "/request" >=> HttpHandlers.requestTimeOff (handleCommand user)
-//                            POST >=> route "/validate-request" >=> HttpHandlers.validateRequest (handleCommand user)
+                            POST >=> route "/validate-request" >=> HttpHandlers.validateRequest (handleCommand user)
                         ]
                     ))
             ])
         setStatusCode 404 >=> text "Not Found" ]
+     *)
+     
+    choose [
+         GET >=>
+            choose [
+                route "/api" >=> text "Welcome!"
+            ]
+         POST >=>
+            choose [
+                route "/users/login" >=> Auth.Handlers.login
+                subRoute "/timeoff"
+                    (Auth.Handlers.requiresJwtTokenForAPI (fun user ->
+                        choose [
+                            POST >=> route "/request" >=> HttpHandlers.requestTimeOff (handleCommand user)
+                            POST >=> route "/validate-request" >=> HttpHandlers.validateRequest (handleCommand user)
+                        ]
+                    ))
+            ]
+            setStatusCode 404 >=> text "Not Found" ]
+    
 
 // ---------------------------------
 // Error handler
+
 // ---------------------------------
 
 let errorHandler (ex: Exception) (logger: ILogger) =
