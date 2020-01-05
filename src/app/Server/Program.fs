@@ -40,7 +40,6 @@ module HttpHandlers =
                     return! (BAD_REQUEST message) next ctx
             }
 
-    (*
     let validateRequest (handleCommand: Command -> Result<RequestEvent list, string>) =
          fun (next: HttpFunc) (ctx: HttpContext) ->
              task {
@@ -53,22 +52,7 @@ module HttpHandlers =
                  | Error message ->
                      return! (BAD_REQUEST message) next ctx
              }
-    *)
     
-    let validateRequest (handleCommand: Command -> Result<RequestEvent list, string>) =
-        fun (next: HttpFunc) (ctx: HttpContext) ->
-            task {
-                //let userAndRequestId = ctx.BindQueryString<UserAndRequestId>()
-                //let command = ValidateRequest (userAndRequestId.UserId, userAndRequestId.RequestId)
-                let requestTimeOff = ctx.BindQueryString<TimeOffRequest>()
-                let command = ValidateRequest requestTimeOff
-                let result = handleCommand command
-                match result with
-                | Ok [RequestValidated timeOffRequest] -> return! json timeOffRequest next ctx
-                | Ok _ -> return! Successful.NO_CONTENT next ctx
-                | Error message ->
-                    return! (BAD_REQUEST message) next ctx
-            }
 // ---------------------------------
 // Web app
 // ---------------------------------
@@ -81,7 +65,7 @@ let webApp (eventStore: IStore<UserId, RequestEvent>) =
         let state = eventStream.ReadAll() |> Seq.fold Logic.evolveUserRequests Map.empty
 
         // Decide how to handle the command
-        let result = Logic.decide DateTime.Now state user command
+        let result = Logic.decide DateTime.Today state user command
 
         // Save events in case of success
         match result with
@@ -128,7 +112,6 @@ let webApp (eventStore: IStore<UserId, RequestEvent>) =
 
 // ---------------------------------
 // Error handler
-
 // ---------------------------------
 
 let errorHandler (ex: Exception) (logger: ILogger) =

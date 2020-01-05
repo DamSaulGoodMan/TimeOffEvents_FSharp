@@ -4,16 +4,16 @@ open System
 // Then our commands
 type Command =
     | RequestTimeOff of TimeOffRequest
-    | AskCancelRequest of TimeOffRequest
-    | ValidateRequest of TimeOffRequest
-    | RefuseRequest of  TimeOffRequest
+    | AskCancelRequest of UserId * Guid
+    | ValidateRequest of UserId * Guid
+    | RefuseRequest of UserId * Guid
     with
     member this.UserId =
         match this with
-        | RequestTimeOff request
-        | ValidateRequest request
-        | AskCancelRequest request
-        | RefuseRequest request -> request.UserId
+        | RequestTimeOff request -> request.UserId
+        | ValidateRequest (userId, _) -> userId
+        | AskCancelRequest (userId, _) -> userId
+        | RefuseRequest (userId, _) -> userId
     
 // And our events
 type RequestEvent =
@@ -160,23 +160,23 @@ module Logic =
                 else
                     Error "Unauthorized"
                     
-            | AskCancelRequest request ->
+            | AskCancelRequest (_, requestId) ->
                 if user <> Manager then
-                    let requestState = defaultArg (userRequests.TryFind request.RequestId) NotCreated
+                    let requestState = defaultArg (userRequests.TryFind requestId) NotCreated
                     cancelRequestAsk requestState
                 else
                     Error "Unauthorized"
 
-            | ValidateRequest request ->
+            | ValidateRequest (_, requestId) ->
                 if user <> Manager then
                     Error "Unauthorized"
                 else
-                    let requestState = defaultArg (userRequests.TryFind request.RequestId) NotCreated
+                    let requestState = defaultArg (userRequests.TryFind requestId) NotCreated
                     validateRequest requestState
 
-            | RefuseRequest request ->
+            | RefuseRequest (_, requestId) ->
                 if user <> Manager then
                     Error "Unauthorized"
                 else
-                    let requestState = defaultArg (userRequests.TryFind request.RequestId) NotCreated
+                    let requestState = defaultArg (userRequests.TryFind requestId) NotCreated
                     refuseRequest requestState
