@@ -52,6 +52,32 @@ module HttpHandlers =
                  | Error message ->
                      return! (BAD_REQUEST message) next ctx
              }
+             
+    let askCancelRequest (handleCommand: Command -> Result<RequestEvent list, string>) =
+         fun (next: HttpFunc) (ctx: HttpContext) ->
+             task {
+                 let userAndRequestId = ctx.BindQueryString<UserAndRequestId>()
+                 let command = AskCancelRequest (userAndRequestId.UserId, userAndRequestId.RequestId)
+                 let result = handleCommand command
+                 match result with
+                 | Ok [RequestCancelAsked timeOffRequest] -> return! json timeOffRequest next ctx
+                 | Ok _ -> return! Successful.NO_CONTENT next ctx
+                 | Error message ->
+                     return! (BAD_REQUEST message) next ctx
+             }
+             
+    let refuseRequest (handleCommand: Command -> Result<RequestEvent list, string>) =
+         fun (next: HttpFunc) (ctx: HttpContext) ->
+             task {
+                 let userAndRequestId = ctx.BindQueryString<UserAndRequestId>()
+                 let command = RefuseRequest (userAndRequestId.UserId, userAndRequestId.RequestId)
+                 let result = handleCommand command
+                 match result with
+                 | Ok [RequestRefused timeOffRequest] -> return! json timeOffRequest next ctx
+                 | Ok _ -> return! Successful.NO_CONTENT next ctx
+                 | Error message ->
+                     return! (BAD_REQUEST message) next ctx
+             }
     
 // ---------------------------------
 // Web app
@@ -75,9 +101,8 @@ let webApp (eventStore: IStore<UserId, RequestEvent>) =
         // Finally, return the result
         result
     
-    (*
     choose [
-        subRoute "/api"
+        subRoute "/api" 
             (choose [
                 route "/users/login" >=> POST >=> Auth.Handlers.login
                 subRoute "/timeoff"
@@ -85,30 +110,12 @@ let webApp (eventStore: IStore<UserId, RequestEvent>) =
                         choose [
                             POST >=> route "/request" >=> HttpHandlers.requestTimeOff (handleCommand user)
                             POST >=> route "/validate-request" >=> HttpHandlers.validateRequest (handleCommand user)
+                            POST >=> route "/ask-cancel-request" >=> HttpHandlers.askCancelRequest (handleCommand user)
+                            POST >=> route "/refuse-request" >=> HttpHandlers.refuseRequest (handleCommand user)
                         ]
                     ))
             ])
         setStatusCode 404 >=> text "Not Found" ]
-     *)
-     
-    choose [
-         GET >=>
-            choose [
-                route "/api" >=> text "Welcome!"
-            ]
-         POST >=>
-            choose [
-                route "/users/login" >=> Auth.Handlers.login
-                subRoute "/timeoff"
-                    (Auth.Handlers.requiresJwtTokenForAPI (fun user ->
-                        choose [
-                            POST >=> route "/request" >=> HttpHandlers.requestTimeOff (handleCommand user)
-                            POST >=> route "/validate-request" >=> HttpHandlers.validateRequest (handleCommand user)
-                        ]
-                    ))
-            ]
-            setStatusCode 404 >=> text "Not Found" ]
-    
 
 // ---------------------------------
 // Error handler
