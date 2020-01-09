@@ -27,11 +27,25 @@ module HttpHandlers =
         UserId: UserId
         RequestId: Guid
     }
-
+    
+    [<CLIMutable>]
+    type UserAndDate = {
+        UserId: UserId
+        Date: DateTime
+    }
+    
     let requestTimeOff (handleCommand: Command -> Result<RequestEvent list, string>) =
         fun (next: HttpFunc) (ctx: HttpContext) ->
             task {
-                let! timeOffRequest = ctx.BindJsonAsync<TimeOffRequest>()
+                let! boundRequest = ctx.BindJsonAsync<TimeOffRequest>()
+                let timeOffRequest =
+                    {
+                          UserId = boundRequest.UserId;
+                          RequestId = Guid.NewGuid();
+                          Start = boundRequest.Start;
+                          End = boundRequest.End;
+                          Creation = DateTime.Now
+                    }
                 let command = RequestTimeOff timeOffRequest
                 let result = handleCommand command
                 match result with
@@ -78,12 +92,24 @@ module HttpHandlers =
                  | Error message ->
                      return! (BAD_REQUEST message) next ctx
              }
+             
+    let getHistory (ofUser: UserId -> seq<RequestEvent>) =
+        fun(next: HttpFunc) (ctx: HttpContext) ->
+            task {
+                let userAndDate = ctx.BindQueryString<UserAndDate>()
+                let result = ofUser userAndDate.UserId
+                return! json result next ctx
+            }
     
 // ---------------------------------
 // Web app
 // ---------------------------------
 
 let webApp (eventStore: IStore<UserId, RequestEvent>) =
+    let events userId =
+        let eventStream = eventStore.GetStream(userId)
+        eventStream.ReadAll()
+    
     let handleCommand (user: User) (command: Command) =
         let userId = command.UserId
 
@@ -112,6 +138,7 @@ let webApp (eventStore: IStore<UserId, RequestEvent>) =
                             POST >=> route "/validate-request" >=> HttpHandlers.validateRequest (handleCommand user)
                             POST >=> route "/ask-cancel-request" >=> HttpHandlers.askCancelRequest (handleCommand user)
                             POST >=> route "/refuse-request" >=> HttpHandlers.refuseRequest (handleCommand user)
+                            GET >=> route "/history" >=> HttpHandlers.getHistory(events)
                         ]
                     ))
             ])
