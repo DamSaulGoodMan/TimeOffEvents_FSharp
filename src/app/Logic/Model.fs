@@ -7,6 +7,7 @@ type Command =
     | AskCancelRequest of UserId * Guid
     | ValidateRequest of UserId * Guid
     | RefuseRequest of UserId * Guid
+    | CancelRequest of UserId * Guid
     with
     member this.UserId =
         match this with
@@ -14,6 +15,7 @@ type Command =
         | ValidateRequest (userId, _) -> userId
         | AskCancelRequest (userId, _) -> userId
         | RefuseRequest (userId, _) -> userId
+        | CancelRequest (userId, _) -> userId
     
 // And our events
 type RequestEvent =
@@ -21,6 +23,7 @@ type RequestEvent =
     | RequestCancelAsked of TimeOffRequest
     | RequestValidated of TimeOffRequest
     | RequestRefused of TimeOffRequest
+    | RequestCancelled of TimeOffRequest
     | Invalid of TimeOffRequest
     with
     member this.Request =
@@ -29,6 +32,7 @@ type RequestEvent =
         | RequestCancelAsked request
         | RequestValidated request
         | RequestRefused request -> request
+        | RequestCancelled request
         | Invalid request -> request
         
 
@@ -41,6 +45,7 @@ module Logic =
         | PendingValidation of TimeOffRequest
         | PendingCancel of TimeOffRequest
         | Validated of TimeOffRequest
+        | Cancelled of TimeOffRequest
         | Refused of TimeOffRequest
         with
         member this.Request =
@@ -49,6 +54,7 @@ module Logic =
             | PendingValidation request
             | PendingCancel request
             | Validated request
+            | Cancelled request -> request
             | Refused request -> request
             
         member this.IsActive =
@@ -57,8 +63,9 @@ module Logic =
             | PendingValidation _
             | Validated _ -> true
             | NotCreated _
+            | Cancelled _ -> false
             | Refused _ -> false
-    
+            
     type UserRequestsState = Map<Guid, RequestState>
 
     let evolveRequest (state: RequestState) (event: RequestEvent) =
@@ -68,6 +75,7 @@ module Logic =
         | RequestValidated request when state.Request.Equals PendingValidation ||
                                         state.Request.Equals PendingCancel ->
             Validated request
+        | RequestCancelled request -> Cancelled request  
         | RequestRefused request when state.IsActive ->
             Refused request
         | RequestCancelAsked request when state.Request.Equals PendingCancel ||
@@ -129,6 +137,16 @@ module Logic =
             Ok [RequestValidated request]
         | _ ->
             Error "Request cannot be validate"
+            
+    let cancelRequest requestState =
+        Console.Error.WriteLine ("cancelRequest", requestState.ToString)
+        match requestState with
+        | PendingValidation request ->
+            Ok [ RequestCancelled request ]
+        | Validated request ->
+            Ok [ RequestCancelled request ]
+        | _ ->
+            Error "Request already cancelled"
                   
     let refuseRequest requestState =
         Console.Error.WriteLine ("refuseRequest", requestState.ToString)
@@ -166,7 +184,14 @@ module Logic =
                     cancelRequestAsk requestState
                 else
                     Error "Unauthorized"
-
+                    
+            | CancelRequest (_, requestId) ->
+                if (user = Manager && (userRequests.TryFind requestId).Value = Validated (userRequests.TryFind requestId).Value.Request) || user = Employee relatedUserId then
+                    let requestState = defaultArg (userRequests.TryFind requestId) NotCreated
+                    cancelRequest requestState
+                else
+                    Error "Unauthorized"
+                    
             | ValidateRequest (_, requestId) ->
                 if user <> Manager then
                     Error "Unauthorized"
