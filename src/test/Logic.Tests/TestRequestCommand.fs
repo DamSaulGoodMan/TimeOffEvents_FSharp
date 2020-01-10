@@ -88,7 +88,7 @@ let validationTests =
             let request = defaultValideRequest
             Given dateOfToday [ RequestCreated request ]
             |> ConnectedAs Manager
-            |> When(ValidateRequest ("User", request.RequestId))
+            |> When(ValidateRequest (defaultEmployedName, request.RequestId))
             |> Then (Ok [ RequestValidated request ]) "The request should have been validated"
         }
         
@@ -97,7 +97,7 @@ let validationTests =
 
             Given dateOfToday [ RequestCreated request ]
             |> ConnectedAs (defaultEmployed)
-            |> When(ValidateRequest ("User", request.RequestId))
+            |> When(ValidateRequest (defaultEmployedName, request.RequestId))
             |> Then (Error "Unauthorized") "The request shouldn't have been validated"
         }
     ]
@@ -124,7 +124,7 @@ let responseForUserCommand =
         test "For a request in pending validation state" {
                 Given dateOfToday [ RequestCreated defaultValideRequest ]
                 |> ConnectedAs (defaultEmployed)
-                |> When(AskCancelRequest ("User", defaultValideRequest.RequestId))
+                |> When(AskCancelRequest (defaultEmployedName, defaultValideRequest.RequestId))
                 |> Then (Ok [ RequestRefused defaultValideRequest ]) "The request is cancel"
         }
         test "For a request in pending cancelation state" {
@@ -132,14 +132,14 @@ let responseForUserCommand =
                                     RequestValidated defaultValideRequest;
                                     RequestCancelAsked defaultValideRequest]
                 |> ConnectedAs (defaultEmployed)
-                |> When(AskCancelRequest ("User", defaultValideRequest.RequestId))
+                |> When(AskCancelRequest (defaultEmployedName, defaultValideRequest.RequestId))
                 |> Then (Ok [ RequestValidated defaultValideRequest ]) "The cancel asked is invalidated"
         }
         test "For a validated request" {
                 Given dateOfToday [ RequestCreated defaultValideRequest;
                                     RequestValidated defaultValideRequest ]
                 |> ConnectedAs (defaultEmployed)
-                |> When(AskCancelRequest ("User", defaultValideRequest.RequestId))
+                |> When(AskCancelRequest (defaultEmployedName, defaultValideRequest.RequestId))
                 |> Then (Ok [ RequestCancelAsked defaultValideRequest ]) "The request is pending admin validation"
         }
         (*test "For a refused requesy" {
